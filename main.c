@@ -41,10 +41,11 @@ void init_osc(void)
 
 void TMR2_init(void)
 {// initialize and start TMR2
+    INTCONbits.GIE = 1; // global interrupt enable
     INTCONbits.PEIE = 1; // peripheral interrupt enable
     PIE1bits.TMR2IE = 1; // Enable TMR2 interrupt
-    GIE = 1; // global interrupt enable
     PIR1bits.TMR2IF = 0; // clear interrupt flag
+
     TMR2 = 0; // set TMR2 to 0
     T2CON = 0; // reset TMR2 config
     T2CONbits.TOUTPS = 0b1111; //prescale 16
@@ -55,17 +56,19 @@ void TMR2_init(void)
 
 void TMR1_init(void)
 {// initialize and start TMR1, using CCP compare mode with Special Event Trigger
+    INTCONbits.GIE = 1; // global interrupt enable
     INTCONbits.PEIE = 1; // peripheral interrupt enable
     PIE1bits.CCP1IE = 1; // Enable CCP interrupt
     //PIE1bits.T1IE = 1;
     // Not using TMR1 interrupt, ony set on rollover
-    INTCONbits.GIE = 1; // global interrupt enable
+    
     PIR1bits.CCP1IF = 0; // clear CCP interrupt flag
     // If using INTOSC and CLKOUT (see config) can use built in LP 32.768 osc, usage below
     //T1CONbits.T1OSCEN = 1; // LP 32.768 Hz osc for TMR1
+
+    TMR1 = 0; // reset TMR1
     T1CON = 0; // reset TMR2 config
     //T1CONbits.T1CKPS = 0; //prescale
-    TMR1 = 0;
     CCP1CON = 0; // reset CCP module
     CCP1CONbits.CCP1M = 0b1011; /*Compare mode, trigger special event
     * (CCP1IF bit is set and TMR1 is reset. CCP1 pin is unaffected.)*/
@@ -74,6 +77,20 @@ void TMR1_init(void)
     // 31kHz/4 = 7750 Hz = 11110 01000110
 
     T1CONbits.TMR1ON = 1; // TMR1 on
+}
+
+void TMR0_init(void)
+{// initialize and start TMR0, on/off 15 times a second if Fosc = 31 kHz
+    INTCONbits.GIE = 1; // global interrupt enable
+    INTCONbits.PEIE = 1; // peripheral interrupt enable
+    PIE1bits.TMR2IE = 1; // Enable TMR0 interrupt
+
+    PIR1bits.TMR2IF = 0; // clear interrupt flag
+    TMR0 = 0; // set TMR2 to 0
+    OPTION_REGbits.T0CS = 0; // reset TMR2 config
+    OPTION_REGbits.PSA = 0; // prescale assigned to TMR0
+    OPTION_REGbits.PS = 0b111; // prescaler
+    T2CONbits.TMR2ON = 1; // TMR2 on
 }
 
 bool sw; // for LED state memory
@@ -94,6 +111,14 @@ void interrupt ISR()
         sw = !sw; // switch LED
         LED = sw; // set LED
     }
+
+    if(INTCONbits.T0IF)
+    {
+        // TMR0 interrupts only on rollover
+        INTCONbits.T0IF = 0; // clear IF
+        sw = !sw; // switch LED
+        LED = sw; // set LED
+    }
 }
 
 int main(void)
@@ -101,7 +126,8 @@ int main(void)
     init_ports();
     init_osc();
     //TMR2_init();   /////Choose TMR init based on interrupt scheme, for now
-    TMR1_init();
+    //TMR1_init();
+    TMR0_init();
     while(1);
 
     return (EXIT_SUCCESS);
