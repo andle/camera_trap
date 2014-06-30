@@ -1,3 +1,6 @@
+// Make sure to save new files in Git folder:
+//                         C:\Users\McGoo\Documents\GitHub\camera_trap
+
 // PIC12F683 Configuration Bit Settings
 
 // 'C' source line config statements
@@ -46,26 +49,59 @@ void TMR2_init(void)
     T2CON = 0; // reset TMR2 config
     T2CONbits.TOUTPS = 0b1111; //prescale 16
     T2CONbits.T2CKPS = 0b11; //postscale 16
-    PR2 = 31; // TMR2 period
+    PR2 = 30; // TMR2 period: 32kHz/4/16/16 = 30.27,
     T2CONbits.TMR2ON = 1; // TMR2 on
-    //LED = 1;
+}
+
+void TMR1_init(void)
+{// initialize and start TMR1, using CCP compare mode with Special Event Trigger
+    INTCONbits.PEIE = 1; // peripheral interrupt enable
+    PIE1bits.CCP1IE = 1; // Enable CCP interrupt
+    //PIE1bits.T1IE = 1;
+    // Not using TMR1 interrupt, ony set on rollover
+    INTCONbits.GIE = 1; // global interrupt enable
+    PIR1bits.CCP1IF = 0; // clear CCP interrupt flag
+    // If using INTOSC and CLKOUT (see config) can use built in LP 32.768 osc, usage below
+    //T1CONbits.T1OSCEN = 1; // LP 32.768 Hz osc for TMR1
+    T1CON = 0; // reset TMR2 config
+    //T1CONbits.T1CKPS = 0; //prescale
+    TMR1 = 0;
+    CCP1CON = 0; // reset CCP module
+    CCP1CONbits.CCP1M = 0b1011; /*Compare mode, trigger special event
+    * (CCP1IF bit is set and TMR1 is reset. CCP1 pin is unaffected.)*/
+    CCPR1L = 0b01000110; // CCP register low
+    CCPR1H = 0b11110; // CCP register high // these two function as period register for special event trigger
+    // 31kHz/4 = 7750 Hz = 11110 01000110
+
+    T1CONbits.TMR1ON = 1; // TMR1 on
 }
 
 bool sw; // for LED state memory
 void interrupt ISR()
 {// ISR
-    TMR2 = 0; // clear TMR2
-    PIR1bits.TMR2IF = 0; // clear IF
-    //GPIObits.GP0 = 1; // LED
-    sw = !sw; // switch LED
-    LED = sw; // set LED
+    if(PIR1bits.TMR2IF)
+    {
+        TMR2 = 0; // clear TMR2
+        PIR1bits.TMR2IF = 0; // clear IF
+        sw = !sw; // switch LED
+        LED = sw; // set LED
+    }
+    
+    if(PIR1bits.CCP1IF)
+    {
+        // TMR1 reset by CCP mode
+        PIR1bits.CCP1IF = 0;
+        sw = !sw; // switch LED
+        LED = sw; // set LED
+    }
 }
 
 int main(void)
 {
     init_ports();
     init_osc();
-    TMR2_init();
+    //TMR2_init();   /////Choose TMR init based on interrupt scheme, for now
+    TMR1_init();
     while(1);
 
     return (EXIT_SUCCESS);
