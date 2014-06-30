@@ -62,7 +62,7 @@ void TMR2_init(void)
 }
 
 void interrupt ISR()
-{
+{// ISR
         TMR2 = 0;
         PIR1bits.TMR2IF = 0;
         GPIObits.GP4 = 1;
