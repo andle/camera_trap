@@ -36,11 +36,11 @@ void init_ports(void)
 
 void init_osc(void)
 { //Internal 8MHz osc
-    OSCCONbits.IRCF = 0b000; //000 = 31 kHz, 110 = 4MHz
+    OSCCONbits.IRCF = 0b110; //000 = 31 kHz, 110 = 4MHz
 }
 
 void TMR2_init(void)
-{// initialize and start TMR2
+{// initialize and start TMR2, using 31 kHz clock
     INTCONbits.GIE = 1; // global interrupt enable
     INTCONbits.PEIE = 1; // peripheral interrupt enable
     PIE1bits.TMR2IE = 1; // Enable TMR2 interrupt
@@ -54,7 +54,7 @@ void TMR2_init(void)
     T2CONbits.TMR2ON = 1; // TMR2 on
 }
 
-void TMR1_init(void)
+void TMR1_init(void) // using 31 kHz clock
 {// initialize and start TMR1, using CCP compare mode with Special Event Trigger
     INTCONbits.GIE = 1; // global interrupt enable
     INTCONbits.PEIE = 1; // peripheral interrupt enable
@@ -93,6 +93,33 @@ void TMR0_init(void)
     T2CONbits.TMR2ON = 1; // TMR2 on
 }
 
+void modulate(long cycles)
+{
+    int i;
+    LED = 0;
+    asm("NOP");
+    asm("NOP");
+    for(i = cycles; i != 0; i--) // 10 initial, 12 second
+    {
+        LED = 1; // 2
+        asm("NOP");
+        asm("NOP");
+        asm("NOP");
+        asm("NOP");
+        asm("NOP");
+        asm("NOP");
+        asm("NOP");
+        asm("NOP");
+        asm("NOP");
+        asm("NOP");
+        asm("NOP");
+        //asm("NOP");
+        //asm("NOP");
+        LED = 0; // 2
+        //asm("NOP");
+    }
+}
+
 bool sw; // for LED state memory
 void interrupt ISR()
 {// ISR
@@ -127,7 +154,24 @@ int main(void)
     init_osc();
     //TMR2_init();   /////Choose TMR init based on interrupt scheme, for now
     //TMR1_init();
-    TMR0_init();
+    //TMR0_init();
+
+//    modulate(72);
+//    delay_t_ms(278);
+//    modulate(18);
+//    delay_t_ms(15);
+//    modulate(18);
+//    delay_t_ms(35);
+//    modulate(18);
+//    delay_t_ms(630);
+//    modulate(72);
+//    delay_t_ms(278);
+//    modulate(18);
+//    delay_t_ms(15);
+//    modulate(18);
+//    delay_t_ms(35);
+//    modulate(18);
+
     while(1);
 
     return (EXIT_SUCCESS);
