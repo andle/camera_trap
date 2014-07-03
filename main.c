@@ -108,36 +108,28 @@ void TMR0_init(void)
 uint8_t sGPIO = 0;
 void trigger(void)
 {
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 1;
     TMR0 = 0;
     while(TMR0 != 16);// on 2 ms
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 0;
     TMR0 = 0;
     while(TMR0 != 217);// off 27.8 ms
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 1;
     TMR0 = 0;
     while(TMR0 != 4);// on .5
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 0;
     TMR0 = 0;
     while(TMR0 != 12);// off 1.5
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 1;
     TMR0 = 0;
     while(TMR0 != 4);// on .5
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 0;
     TMR0 = 0;
     while(TMR0 != 27);// off 3.5
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 1;
     TMR0 = 0;
     while(TMR0 != 4);// on .5
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 0;
     TMR0 = 0;
     while(TMR0 != 246);// off 63
     TMR0 = 0;///////////////////
@@ -145,167 +137,34 @@ void trigger(void)
     TMR0 = 0;///////////////////
     
     // repeat
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 1;
     TMR0 = 0;
     while(TMR0 != 16);// on 2 ms
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 0;
     TMR0 = 0;
     while(TMR0 != 217);// off 27.8 ms
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 1;
     TMR0 = 0;
     while(TMR0 != 4);// on .5
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 0;
     TMR0 = 0;
     while(TMR0 != 12);// off 1.5
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 1;
     TMR0 = 0;
     while(TMR0 != 4);// on .5
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 0;
     TMR0 = 0;
     while(TMR0 != 27);// off 3.5
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 1;
     TMR0 = 0;
     while(TMR0 != 4);// on .5
-    sGPIO ^= (1<<0);
-    GPIO = sGPIO;
+    LED = 0;
     TMR0 = 0;
     while(TMR0 != 246);// off 63
     TMR0 = 0;///////////////////
     while(TMR0 != 246);/////////
     TMR0 = 0;///////////////////
 }
-
-int times;
-void trig(void)
-{
-#asm
-    pulsecount	equ		0x08
-    times	equ		0x09
-
-        movlw	0x01
-	movwf	times
-    main
-	movlw	77
-	movwf	pulsecount
-	call 	pulsehi
-	movlw	0xff
-	movwf	pulsecount
-	call	pulselo
-	call	pulselo
-	call	pulselo
-	call	pulselo
-	movlw	48
-	movwf	pulsecount
-	call	pulselo
-	movlw	19
-	movwf	pulsecount
-	call	pulsehi
-	movlw	58
-	movwf	pulsecount
-	call	pulselo
-	movlw	19
-	movwf	pulsecount
-	call	pulsehi
-	movlw	135
-	movwf	pulsecount
-	call	pulselo
-	movlw	19
-	movwf	pulsecount
-	call	pulsehi
-	movlw	0xff
-	movwf	pulsecount
-	call	pulselo
-	call	pulselo
-	call	pulselo
-	call	pulselo
-	call	pulselo
-	call	pulselo
-	call	pulselo
-	call	pulselo
-	call	pulselo
-	movlw	125
-	movwf	pulsecount
-	call	pulselo
-	decfsz	times,1
-	goto 	main
-
-	movlw	0xff
-	movwf	pulsecount
-	call	pulselo
-
-	sleep
-
-
-pulsehi
-	bsf		GPIO,2
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop							;10
-	nop
-	nop
-	nop
-	bcf		GPIO,2
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop							;20
-	nop
-	nop
-	nop
-	decfsz	pulsecount,1
-	goto pulsehi
-	retlw	0
-
-pulselo
-	bcf		GPIO,2
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop							;10
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop							;20
-	nop
-	nop
-	nop
-	decfsz	pulsecount,1
-	goto pulselo
-	retlw	0
-
-#endasm
-}
-
-
-
-
-
 
 //bool sw; // for LED state memory
 //void interrupt ISR()
@@ -335,20 +194,6 @@ pulselo
 //    }
 //}
 
-//void delay(void)
-//{
-//#asm
-//            clrf    TMR0
-//    w_tmr0  movf    TMR0,w
-//            xorlw   .8
-//            btfss   STATUS,z
-//            goto    w_tmr0
-//
-//    ;
-//#endasm
-//}
-
-
 int main(void)
 {
     init_ports();
@@ -360,7 +205,7 @@ int main(void)
     int i;
     while(1)
     {
-        trig();
+        trigger();
         for(i = 20; i != 0; i--)
         {
             TMR0 = 0;
