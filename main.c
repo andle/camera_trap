@@ -28,6 +28,9 @@
 #include <stdint.h>
 
 #define LED GPIObits.GP4
+#define NOP4	asm("nop"); asm("nop"); asm("nop"); asm("nop");
+#define NOP3	asm("nop"); asm("nop");asm("nop");
+#define NOP2	asm("nop"); asm("nop");
 
 void init_ports(void)
 {
@@ -38,7 +41,7 @@ void init_ports(void)
 
 void init_osc(void)
 { //Internal 8MHz osc
-    OSCCONbits.IRCF = 0b111; //0b000 = 31 kHz, 0b110 = 4MHz, 0b111 = 8MHz
+    OSCCONbits.IRCF = 0b110; //0b000 = 31 kHz, 0b110 = 4MHz, 0b111 = 8MHz
 }
 
 void TMR2_init(void) // does NOT increment in sleep mode
@@ -105,67 +108,6 @@ void TMR0_init(void)
     T2CONbits.TMR2ON = 1; // TMR2 on
 }
 
-//void trigger(void)
-//{
-//
-//    TMR0 = 0;
-//    while(TMR0 < 16);// on 2 ms
-//    T2CONbits.TMR2ON = 0;
-//    TMR0 = 0;
-//    while(TMR0 < 217);// off 27.8 ms
-//    T2CONbits.TMR2ON = 1;
-//    TMR0 = 0;
-//    while(TMR0 < 4);// on .5
-//    T2CONbits.TMR2ON = 0;
-//    TMR0 = 0;
-//    while(TMR0 < 12);// off 1.5
-//    T2CONbits.TMR2ON = 1;
-//    TMR0 = 0;
-//    while(TMR0 < 4);// on .5
-//    T2CONbits.TMR2ON = 0;
-//    TMR0 = 0;
-//    while(TMR0 < 27);// off 3.5
-//    T2CONbits.TMR2ON = 1;
-//    TMR0 = 0;
-//    while(TMR0 < 4);// on .5
-//    T2CONbits.TMR2ON = 0;
-//    TMR0 = 0;
-//    while(TMR0 < 246);// off 63
-//    TMR0 = 0;///////////////////
-//    while(TMR0 < 246);/////////
-//    TMR0 = 0;///////////////////
-//
-//    // repeat
-//    T2CONbits.TMR2ON = 1;
-//    TMR0 = 0;
-//    while(TMR0 < 16);// on 2 ms
-//    T2CONbits.TMR2ON = 0;
-//    TMR0 = 0;
-//    while(TMR0 < 217);// off 27.8 ms
-//    T2CONbits.TMR2ON = 1;
-//    TMR0 = 0;
-//    while(TMR0 < 4);// on .5
-//    T2CONbits.TMR2ON = 0;
-//    TMR0 = 0;
-//    while(TMR0 < 12);// off 1.5
-//    T2CONbits.TMR2ON = 1;
-//    TMR0 = 0;
-//    while(TMR0 < 4);// on .5
-//    T2CONbits.TMR2ON = 0;
-//    TMR0 = 0;
-//    while(TMR0 < 27);// off 3.5
-//    T2CONbits.TMR2ON = 1;
-//    TMR0 = 0;
-//    while(TMR0 < 4);// on .5
-//    T2CONbits.TMR2ON = 0;
-//    TMR0 = 0;
-//    while(TMR0 < 246);// off 63
-//    TMR0 = 0;///////////////////
-//    while(TMR0 < 246);/////////
-//    TMR0 = 0;///////////////////
-//
-//}
-
 //bool sw; // for LED state memory
 //void interrupt ISR()
 //{// ISR
@@ -194,7 +136,53 @@ void TMR0_init(void)
 //    }
 //}
 
-extern void trig(void);
+#define SendIRPulse(x) SendIRPulseCycles(x/25);
+void SendIRPulseCycles(char cycles)
+{
+	while (cycles--)		//this loop is exactly 25us - of approximately 50% dutycycle
+	{
+		LED = 1;
+		NOP4; NOP4; NOP3;
+		LED = 0;
+		NOP3;
+	}
+}
+
+#define waitExactUs(x) waitExactUsHex(x/256, (x%256)/5);
+void waitExactUsHex(char hByte, char lByte)
+{
+    char i;
+    while (lByte--) { continue; }
+    while (hByte--)
+    {
+        i = 35;
+        while (i--) { continue; }
+    }
+}
+
+void trigger()
+{
+	SendIRPulse(2000);
+	waitExactUs(27800);
+	SendIRPulse(500);
+	waitExactUs(1500);
+	SendIRPulse(500);
+	waitExactUs(3500);
+	SendIRPulse(500);
+
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(13000);
+        
+        SendIRPulse(2000);
+	waitExactUs(27800);
+	SendIRPulse(500);
+	waitExactUs(1500);
+	SendIRPulse(500);
+	waitExactUs(3500);
+	SendIRPulse(500);
+
+}
 
 int main(void)
 {
@@ -204,24 +192,34 @@ int main(void)
     //TMR1_init();
     //TMR0_init();
 
-    int sw=1, i;
     while(1)
     {
-        trig();
-//        sw = !sw;
-//        if(sw == 1)
-//        {
-//            CCPR1L = 0b00011011;
-//        }
-//        if(sw == 0)
-//        {
-//            CCPR1L = 0;
-//        }
-        for(i = 20; i != 0; i--)
-        {
-            TMR0 = 0;
-            while(TMR0 != 254);
-        }
+        trigger();
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(25000);
+
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(25000);
+
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(25000);
+
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(25000);
+
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(25000);
+        waitExactUs(25000);
+
     }
 
     return (EXIT_SUCCESS);
