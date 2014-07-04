@@ -11,7 +11,7 @@
 // Use project enums instead of #define for ON and OFF.
 
 // CONFIG
-#pragma config FOSC = INTOSCCLK // Oscillator Selection bits (INTOSC oscillator: CLKOUT function on RA4/OSC2/CLKOUT pin, I/O function on RA5/OSC1/CLKIN)
+#pragma config FOSC = INTOSCIO // Oscillator Selection bits (INTOSC oscillator: CLKOUT function on RA4/OSC2/CLKOUT pin, I/O function on RA5/OSC1/CLKIN)
 #pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
 #pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
 #pragma config MCLRE = ON       // MCLR Pin Function Select bit (MCLR pin function is MCLR)
@@ -27,7 +27,7 @@
 #include <pic12f683.h>
 #include <stdint.h>
 
-#define LED GPIObits.GP0
+#define LED GPIObits.GP4
 
 void init_ports(void)
 {
@@ -49,15 +49,15 @@ void TMR2_init(void) // does NOT increment in sleep mode
     PIR1bits.TMR2IF = 0; // clear interrupt flag
 
     //TMR2 = 0; // set TMR2 to 0
-    //T2CON = 0; // reset TMR2 config
+    T2CON = 0; // reset TMR2 config
     //T2CONbits.TOUTPS = 0b0; //prescale: 0b1111 = 16
     //T2CONbits.T2CKPS = 0b0; //postscale: 0b11 = 16
-    PR2 = 51; // TMR2 period: 32kHz/4/16/16 = 30.27, ///Used in PWM for period
+    PR2 = 51; // TMR2 period //Used in PWM for period
     CCP1CON = 0; // reset CCP module
     CCP1CONbits.CCP1M = 0b1100; //110x = PWM mode, active high, 111x = PWM mode active low
     CCP1CONbits.DC1B = 00; // 2 lsb of 8 for PWM duty cycle
     CCPR1L = 0b00011011; // CCP register low: 6msb of 8 for PWM duty cycle
-    //CCPR1H = 0b00000000; // CCP register high //
+    CCPR1H = 0b00000000; // CCP register high //
     T2CONbits.TMR2ON = 1; // TMR2 on
     while(TMR2 !=0); // wait a cycle to start PWM
     TRISIObits.TRISIO2 = 0; // enable PWM output
@@ -105,66 +105,66 @@ void TMR0_init(void)
     T2CONbits.TMR2ON = 1; // TMR2 on
 }
 
-uint8_t sGPIO = 0;
-void trigger(void)
-{
-    LED = 1;
-    TMR0 = 0;
-    while(TMR0 != 16);// on 2 ms
-    LED = 0;
-    TMR0 = 0;
-    while(TMR0 != 217);// off 27.8 ms
-    LED = 1;
-    TMR0 = 0;
-    while(TMR0 != 4);// on .5
-    LED = 0;
-    TMR0 = 0;
-    while(TMR0 != 12);// off 1.5
-    LED = 1;
-    TMR0 = 0;
-    while(TMR0 != 4);// on .5
-    LED = 0;
-    TMR0 = 0;
-    while(TMR0 != 27);// off 3.5
-    LED = 1;
-    TMR0 = 0;
-    while(TMR0 != 4);// on .5
-    LED = 0;
-    TMR0 = 0;
-    while(TMR0 != 246);// off 63
-    TMR0 = 0;///////////////////
-    while(TMR0 != 246);/////////
-    TMR0 = 0;///////////////////
-    
-    // repeat
-    LED = 1;
-    TMR0 = 0;
-    while(TMR0 != 16);// on 2 ms
-    LED = 0;
-    TMR0 = 0;
-    while(TMR0 != 217);// off 27.8 ms
-    LED = 1;
-    TMR0 = 0;
-    while(TMR0 != 4);// on .5
-    LED = 0;
-    TMR0 = 0;
-    while(TMR0 != 12);// off 1.5
-    LED = 1;
-    TMR0 = 0;
-    while(TMR0 != 4);// on .5
-    LED = 0;
-    TMR0 = 0;
-    while(TMR0 != 27);// off 3.5
-    LED = 1;
-    TMR0 = 0;
-    while(TMR0 != 4);// on .5
-    LED = 0;
-    TMR0 = 0;
-    while(TMR0 != 246);// off 63
-    TMR0 = 0;///////////////////
-    while(TMR0 != 246);/////////
-    TMR0 = 0;///////////////////
-}
+//void trigger(void)
+//{
+//
+//    TMR0 = 0;
+//    while(TMR0 < 16);// on 2 ms
+//    T2CONbits.TMR2ON = 0;
+//    TMR0 = 0;
+//    while(TMR0 < 217);// off 27.8 ms
+//    T2CONbits.TMR2ON = 1;
+//    TMR0 = 0;
+//    while(TMR0 < 4);// on .5
+//    T2CONbits.TMR2ON = 0;
+//    TMR0 = 0;
+//    while(TMR0 < 12);// off 1.5
+//    T2CONbits.TMR2ON = 1;
+//    TMR0 = 0;
+//    while(TMR0 < 4);// on .5
+//    T2CONbits.TMR2ON = 0;
+//    TMR0 = 0;
+//    while(TMR0 < 27);// off 3.5
+//    T2CONbits.TMR2ON = 1;
+//    TMR0 = 0;
+//    while(TMR0 < 4);// on .5
+//    T2CONbits.TMR2ON = 0;
+//    TMR0 = 0;
+//    while(TMR0 < 246);// off 63
+//    TMR0 = 0;///////////////////
+//    while(TMR0 < 246);/////////
+//    TMR0 = 0;///////////////////
+//
+//    // repeat
+//    T2CONbits.TMR2ON = 1;
+//    TMR0 = 0;
+//    while(TMR0 < 16);// on 2 ms
+//    T2CONbits.TMR2ON = 0;
+//    TMR0 = 0;
+//    while(TMR0 < 217);// off 27.8 ms
+//    T2CONbits.TMR2ON = 1;
+//    TMR0 = 0;
+//    while(TMR0 < 4);// on .5
+//    T2CONbits.TMR2ON = 0;
+//    TMR0 = 0;
+//    while(TMR0 < 12);// off 1.5
+//    T2CONbits.TMR2ON = 1;
+//    TMR0 = 0;
+//    while(TMR0 < 4);// on .5
+//    T2CONbits.TMR2ON = 0;
+//    TMR0 = 0;
+//    while(TMR0 < 27);// off 3.5
+//    T2CONbits.TMR2ON = 1;
+//    TMR0 = 0;
+//    while(TMR0 < 4);// on .5
+//    T2CONbits.TMR2ON = 0;
+//    TMR0 = 0;
+//    while(TMR0 < 246);// off 63
+//    TMR0 = 0;///////////////////
+//    while(TMR0 < 246);/////////
+//    TMR0 = 0;///////////////////
+//
+//}
 
 //bool sw; // for LED state memory
 //void interrupt ISR()
@@ -194,18 +194,29 @@ void trigger(void)
 //    }
 //}
 
+extern void trig(void);
+
 int main(void)
 {
     init_ports();
     init_osc();
     //TMR2_init();   /////Choose TMR init based on interrupt scheme, for now
     //TMR1_init();
-    TMR0_init();
+    //TMR0_init();
 
-    int i;
+    int sw=1, i;
     while(1)
     {
-        trigger();
+        trig();
+//        sw = !sw;
+//        if(sw == 1)
+//        {
+//            CCPR1L = 0b00011011;
+//        }
+//        if(sw == 0)
+//        {
+//            CCPR1L = 0;
+//        }
         for(i = 20; i != 0; i--)
         {
             TMR0 = 0;
