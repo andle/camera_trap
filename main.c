@@ -1,17 +1,8 @@
 // Make sure to save new files in Git folder:
-//                         C:\Users\McGoo\Documents\GitHub\camera_trap
-
-// PIC12F683 Configuration Bit Settings
-
-// 'C' source line config statements
-
-#include <xc.h>
-
-// #pragma config statements should precede project file includes.
-// Use project enums instead of #define for ON and OFF.
+//      C:\Users\McGoo\Documents\GitHub\camera_trap
 
 // CONFIG
-#pragma config FOSC = INTOSCIO // Oscillator Selection bits (INTOSC oscillator: CLKOUT function on RA4/OSC2/CLKOUT pin, I/O function on RA5/OSC1/CLKIN)
+#pragma config FOSC = INTOSCIO // Oscillator Selection bits (INTOSC oscillator: IO function on RA4/OSC2/CLKOUT pin, I/O function on RA5/OSC1/CLKIN)
 #pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
 #pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
 #pragma config MCLRE = ON       // MCLR Pin Function Select bit (MCLR pin function is MCLR)
@@ -21,22 +12,43 @@
 #pragma config IESO = OFF       // Internal External Switchover bit (Internal External Switchover mode is disabled)
 #pragma config FCMEN = OFF      // Fail-Safe Clock Monitor Enabled bit (Fail-Safe Clock Monitor is disabled)
 
+#include <xc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <pic12f683.h>
 #include <stdint.h>
 
-#define LED GPIObits.GP4
-#define NOP4	asm("nop"); asm("nop"); asm("nop"); asm("nop");
-#define NOP3	asm("nop"); asm("nop");asm("nop");
-#define NOP2	asm("nop"); asm("nop");
+// GPIO assignments, double check these
+
+#define IRLED GPIObits.GP0 // output to camera trigger IR transmitter LED
+#define indicator GPIObits.GP1 // output to powerOn/detectConfirm indicator LED
+#define modulate GPIObits.GP2 // modualted output to detector ???
+//#define powerOn GPIObits.GP3 // cannot use GPIO3 as output
+#define startButton GPIObits.GP4 // input from start button
+#define detect GPIObits.GP5 // input signal from detector
+
+
+// get rid of these, rename functions too
+#define NOP4 asm("nop"); asm("nop"); asm("nop"); asm("nop");
+#define NOP3 asm("nop"); asm("nop");asm("nop");
+#define NOP2 asm("nop"); asm("nop");
 
 void init_ports(void)
 {
-    //ANSELbits.ANS = 0b0000; // 0=digital, 1=analog, does not affect digital output
-    TRISIO = 0b000100; // IO settings: bit 2 input for PWM initialization
+    ANSELbits.ANS = 0b0000; // 0=digital, 1=analog, does not affect digital output
+    TRISIObits.TRISIO0 = 0;
+    TRISIObits.TRISIO1 = 0;
+    TRISIObits.TRISIO2 = 0;
+    //TRISIObits.TRISIO3 = 0; // 3 always input?
+    TRISIObits.TRISIO4 = 1;
+    TRISIObits.TRISIO5 = 1;
     GPIO = 0; // clear all IO bits
+
+    OPTION_REGbits.nGPPU = 0;
+    WPUbits.WPU4 = 1; //weak pull up on startButton input
+    WPUbits.WPU5 = 1; //weak pull up on detect input    
+
 }
 
 void init_osc(void)
@@ -66,7 +78,7 @@ void TMR2_init(void) // does NOT increment in sleep mode
     TRISIObits.TRISIO2 = 0; // enable PWM output
 }
 
-void TMR1_init(void) // using 31 kHz clock
+void TMR1_init(void) //
 {// initialize and start TMR1, using CCP compare mode with Special Event Trigger
     INTCONbits.GIE = 1; // global interrupt enable
     INTCONbits.PEIE = 1; // peripheral interrupt enable
@@ -76,7 +88,7 @@ void TMR1_init(void) // using 31 kHz clock
     
     PIR1bits.CCP1IF = 0; // clear CCP interrupt flag
     // If using INTOSC and CLKOUT (see config) can use built in LP 32.768 osc, usage below
-    //T1CONbits.T1OSCEN = 1; // LP 32.768 Hz osc for TMR1
+    //T1CONbits.T1OSCEN = 1; // to use LP 32.768 Hz osc for TMR1
 
     TMR1 = 0; // reset TMR1
     T1CON = 0; // reset TMR2 config
@@ -139,13 +151,13 @@ void TMR0_init(void)
 #define SendIRPulse(x) SendIRPulseCycles(x/25);
 void SendIRPulseCycles(char cycles)
 {
-	while (cycles--)		//this loop is exactly 25us - of approximately 50% dutycycle
-	{
-		LED = 1;
-		NOP4; NOP4; NOP3;
-		LED = 0;
-		NOP3;
-	}
+    while (cycles--)		//this loop is exactly 25us - of approximately 50% dutycycle
+    {
+        IRLED = 1;
+        NOP4; NOP4; NOP3;
+        IRLED = 0;
+        NOP3;
+    }
 }
 
 #define waitExactUs(x) waitExactUsHex(x/256, (x%256)/5);
@@ -162,64 +174,88 @@ void waitExactUsHex(char hByte, char lByte)
 
 void trigger()
 {
-	SendIRPulse(2000);
-	waitExactUs(27800);
-	SendIRPulse(500);
-	waitExactUs(1500);
-	SendIRPulse(500);
-	waitExactUs(3500);
-	SendIRPulse(500);
+    SendIRPulse(2000);
+    waitExactUs(27800);
+    SendIRPulse(500);
+    waitExactUs(1500);
+    SendIRPulse(500);
+    waitExactUs(3500);
+    SendIRPulse(500);
 
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(13000);
-        
-        SendIRPulse(2000);
-	waitExactUs(27800);
-	SendIRPulse(500);
-	waitExactUs(1500);
-	SendIRPulse(500);
-	waitExactUs(3500);
-	SendIRPulse(500);
+    waitExactUs(25000);
+    waitExactUs(25000);
+    waitExactUs(13000);
 
+    SendIRPulse(2000);
+    waitExactUs(27800);
+    SendIRPulse(500);
+    waitExactUs(1500);
+    SendIRPulse(500);
+    waitExactUs(3500);
+    SendIRPulse(500);
+
+}
+
+void startup(void)
+{ // modulate out to detector
+    int j, k;
+    bool sw;
+    for(j=6; j !=0; j--) // flash indicator for poweron or reset
+    {
+        sw = !sw;
+        indicator = sw;
+        for(k=20; k !=0; k--) // turn
+            {
+                waitExactUs(25000);
+            }
+    }
+
+    while(startButton | detect) // wait for start button press and beam detection, both active low
+        // start button active low, detector active low (will be low as long as beam is received?)
+    {
+        IRLED = 1;
+        NOP4; NOP3; NOP2; // add/remove as needed for 38.4 kHz
+        if(!detect) // if beam reflecting and sensed, active low
+        {
+            indicator = 1;
+        }
+        if(detect) // if beam not detected, active low
+        {            
+            indicator = 0;
+        }
+        IRLED = 0;
+        NOP3;NOP2; // add/remove as needed for 38.4 kHz
+    }
 }
 
 int main(void)
 {
     init_ports();
     init_osc();
+    startup();
     //TMR2_init();   /////Choose TMR init based on interrupt scheme, for now
     //TMR1_init();
     //TMR0_init();
 
-    while(1)
+    while(1)// main loop
     {
-        trigger();
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(25000);
+        int i;
+        while(detect)// main looop, program spends majority here, detect active low
+        {
+            IRLED = 1;
+            NOP4; NOP4; NOP3;
+            IRLED = 0;
+            NOP4; NOP3; NOP2;
+        }
 
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(25000);
+        // have reset on box if setup needed again
+        // set up 15 minute timer using interrupt and counter, calls trigger
 
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(25000);
-
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(25000);
-
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(25000);
-        waitExactUs(25000);
-
+        trigger(); // take picture
+        for(i=40; i !=0; i--) // delay between pictures
+        {
+            waitExactUs(25000);
+        }
     }
 
     return (EXIT_SUCCESS);
