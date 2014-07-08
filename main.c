@@ -22,9 +22,9 @@
 // GPIO assignments, double check these
 
 #define IRLED GPIObits.GP0 // output to camera trigger IR transmitter LED
-#define indicator GPIObits.GP1 // output to powerOn/detectConfirm indicator LED
+#define indicateDetect GPIObits.GP1 // output to powerOn/detectConfirm indicator LED
 #define modulate GPIObits.GP2 // modualted output to detector ???
-//#define powerOn GPIObits.GP3 // cannot use GPIO3 as output
+//#define indicatePower GPIObits.GP3 // cannot use GPIO3 as output
 #define startButton GPIObits.GP4 // input from start button
 #define detect GPIObits.GP5 // input signal from detector
 
@@ -33,6 +33,7 @@
 #define NOP4 asm("nop"); asm("nop"); asm("nop"); asm("nop");
 #define NOP3 asm("nop"); asm("nop");asm("nop");
 #define NOP2 asm("nop"); asm("nop");
+#define NOP1 asm("nop");
 
 void init_ports(void)
 {
@@ -165,6 +166,18 @@ void SendIRPulseCycles(char cycles)
     }
 }
 
+#define SendIRPulseDetect(x) SendIRPulseDetectCycles(x/25);
+void SendIRPulseDetectCycles(char cycles)
+{
+    while (cycles--)		//this loop is exactly 25us - of approximately 50% dutycycle
+    {
+        modulate = 1;
+        NOP4; NOP4; NOP3;
+        modulate = 0;
+        NOP3;
+    }
+}
+
 #define waitExactUs(x) waitExactUsHex(x/256, (x%256)/5);
 void waitExactUsHex(char hByte, char lByte)
 {
@@ -203,12 +216,14 @@ void trigger()
 
 void startup(void)
 { // modulate out to detector
+    indicateDetect = 1;
     int j, k;
     bool sw;
+
     for(j=6; j !=0; j--) // flash indicator for poweron or reset
     {
         sw = !sw;
-        indicator = sw;
+        indicateDetect = sw;
         for(k=20; k !=0; k--) // turn
             {
                 waitExactUs(25000);
@@ -218,19 +233,21 @@ void startup(void)
     while(startButton | detect) // wait for start button press and beam detection, both active low
         // start button active low, detector active low (will be low as long as beam is received?)
     {
-        IRLED = 1;
-        NOP4; NOP3; NOP2; // add/remove as needed for 38.4 kHz
+        modulate = 1;
+        NOP4; NOP1;// NOP2;// add/remove as needed for 38.4 kHz
         if(!detect) // if beam reflecting and sensed, active low
         {
-            indicator = 1;
+            indicateDetect = 1;
         }
         if(detect) // if beam not detected, active low
-        {            
-            indicator = 0;
+        {
+            indicateDetect = 0;
         }
-        IRLED = 0;
-        NOP3;NOP2; // add/remove as needed for 38.4 kHz
+        modulate = 0;
+        NOP1;//NOP2; // add/remove as needed for 38.4 kHz
     }
+    //indicateDetect = 0;
+    //indicatePower = 0;
 }
 
 int main(void)
@@ -242,24 +259,29 @@ int main(void)
     //TMR1_init();
     //TMR0_init(); // will use for 15 min timer
 
+    int i;
     while(1)// main loop
     {
-        int i;
-        while(detect)// main looop, program spends majority here, detect active low
+        SendIRPulseDetect(6000); // to get detect line low
+        while(!detect)// main looop, program spends majority here, detect active low
         {
-            IRLED = 1;
-            NOP4; NOP4; NOP3;
-            IRLED = 0;
-            NOP4; NOP3; NOP2;
+            modulate = 1;
+            NOP4; NOP4; NOP2;
+            modulate = 0;
+            NOP4; NOP4;
         }
 
         // have reset on box if setup needed again
         // set up 15 minute timer using interrupt and counter, calls trigger
 
-        trigger(); // take picture
-        for(i=40; i !=0; i--) // delay between pictures
+        for(i=10; i !=0; i--) // to separate beginning of trigger sequence
         {
-            waitExactUs(25000);
+            waitExactUs(50000);
+        }
+        trigger(); // take picture
+        for(i=10; i !=0; i--) // delay between pictures
+        {
+            waitExactUs(50000);
         }
     }
 
