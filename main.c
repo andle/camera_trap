@@ -105,10 +105,10 @@ void TMR1_init(void) //
 
 void TMR0_init(void)
 {// initialize and start TMR0,
-    //INTCONbits.GIE = 1; // global interrupt enable  ////////// done int TMR2 _init
-    //INTCONbits.PEIE = 1; // peripheral interrupt enable ////////// done int TMR2 _init
-    //PIE1bits.TMR0IE = 0; // Enable TMR0 interrupt
-    //INTCONbits.TMR0IF = 0; // clear interrupt flag
+    INTCONbits.GIE = 1; // global interrupt enable
+    INTCONbits.PEIE = 1; // peripheral interrupt enable
+    INTCONbits.T0IE = 0; // Enable TMR0 interrupt
+    INTCONbits.T0IF = 0; // clear interrupt flag
 
     OPTION_REG = 0; // TMR0 config
     OPTION_REGbits.T0CS = 0; // Internal instruction cycle clock (FOSC/4)
@@ -117,34 +117,39 @@ void TMR0_init(void)
     /*In order to have a 1:1 prescaler value for the Timer0
     module, the prescaler must be assigned to the WDT
     module.*/
-    T2CONbits.TMR2ON = 1; // TMR2 on
+
 }
 
-//bool sw; // for LED state memory
+//int cnt;
 //void interrupt ISR()
 //{// ISR
 //    if(PIR1bits.TMR2IF)
 //    {
-//        TMR2 = 0; // clear TMR2
+//        //TMR2 = 0; // clear TMR2
 //        PIR1bits.TMR2IF = 0; // clear IF
-//        sw = !sw; // switch LED
-//        LED = sw; // set LED
+//    }
+//
+//    if(PIR1bits.T1IF)
+//    {
+//        PIR1bits.T1IF = 0;
 //    }
 //
 //    if(PIR1bits.CCP1IF)
 //    {
 //        //  ,TMR1 reset by CCP mode
 //        PIR1bits.CCP1IF = 0;
-//        sw = !sw; // switch LED
-//        LED = sw; // set LED
 //    }
 //
 //    if(INTCONbits.T0IF)
 //    {
 //        // TMR0 interrupts only on rollover
 //        INTCONbits.T0IF = 0; // clear IF
-//        sw = !sw; // switch LED
-//        LED = sw; // set LED
+//        if(++cnt == 58000) // if almost 15 minutes: Fosc/4/256 = 1e5/256 = 3906.25
+//            //  1/3906.25 = .000256, 15/.000256 = 58593.75 ~ 58593 for 15 minutes
+//        {
+//            trigger(); // take picture
+//            cnt = 0;  // reset 15 minute counter
+//        }
 //    }
 //}
 
@@ -235,7 +240,7 @@ int main(void)
     startup();
     //TMR2_init();   /////Choose TMR init based on interrupt scheme, for now
     //TMR1_init();
-    //TMR0_init();
+    //TMR0_init(); // will use for 15 min timer
 
     while(1)// main loop
     {
