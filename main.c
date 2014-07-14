@@ -57,61 +57,61 @@ void init_osc(void)
     OSCCONbits.IRCF = 0b110; //0b000 = 31 kHz, 0b110 = 4MHz, 0b111 = 8MHz
 }
 
-void TMR2_init(void) // does NOT increment in sleep mode
-{// initialize and start TMR2, currently for PWM
-    INTCONbits.GIE = 1; // global interrupt enable
-    INTCONbits.PEIE = 1; // peripheral interrupt enable
-    PIE1bits.TMR2IE = 1; // Enable TMR2 interrupt
-    PIR1bits.TMR2IF = 0; // clear interrupt flag
-
-    //TMR2 = 0; // set TMR2 to 0
-    T2CON = 0; // reset TMR2 config
-    //T2CONbits.TOUTPS = 0b0; //prescale: 0b1111 = 16
-    //T2CONbits.T2CKPS = 0b0; //postscale: 0b11 = 16
-    PR2 = 51; // TMR2 period //Used in PWM for period
-    CCP1CON = 0; // reset CCP module
-    CCP1CONbits.CCP1M = 0b1100; //110x = PWM mode, active high, 111x = PWM mode active low
-    CCP1CONbits.DC1B = 00; // 2 lsb of 8 for PWM duty cycle
-    CCPR1L = 0b00011011; // CCP register low: 6msb of 8 for PWM duty cycle
-    CCPR1H = 0b00000000; // CCP register high //
-    T2CONbits.TMR2ON = 1; // TMR2 on
-    while(TMR2 !=0); // wait a cycle to start PWM
-    TRISIObits.TRISIO2 = 0; // enable PWM output
-}
-
-void TMR1_init(void) //
-{// initialize and start TMR1, using CCP compare mode with Special Event Trigger
-    INTCONbits.GIE = 1; // global interrupt enable
-    INTCONbits.PEIE = 1; // peripheral interrupt enable
-    PIE1bits.CCP1IE = 1; // Enable CCP interrupt
-    //PIE1bits.T1IE = 1;
-    // Not using TMR1 interrupt, ony set on rollover
-    
-    PIR1bits.CCP1IF = 0; // clear CCP interrupt flag
-    // If using INTOSC and CLKOUT (see config) can use built in LP 32.768 osc, usage below
-    //T1CONbits.T1OSCEN = 1; // to use LP 32.768 Hz osc for TMR1
-
-    TMR1 = 0; // reset TMR1
-    T1CON = 0; // reset TMR2 config
-    //T1CONbits.T1CKPS = 0; //prescale
-    CCP1CON = 0; // reset CCP module
-    CCP1CONbits.CCP1M = 0b1011; /*Compare mode, trigger special event
-    * (CCP1IF bit is set and TMR1 is reset. CCP1 pin is unaffected.)*/
-    CCPR1L = 0b01000110; // CCP register low
-    CCPR1H = 0b11110; // CCP register high // these two function as period register for special event trigger
-    // 31kHz/4 = 7750 Hz = 11110 01000110
-
-    T1CONbits.TMR1ON = 1; // TMR1 on
-}
+//void TMR2_init(void) // does NOT increment in sleep mode
+//{// initialize and start TMR2, currently for PWM
+//    INTCONbits.GIE = 1; // global interrupt enable
+//    INTCONbits.PEIE = 1; // peripheral interrupt enable
+//    PIE1bits.TMR2IE = 1; // Enable TMR2 interrupt
+//    PIR1bits.TMR2IF = 0; // clear interrupt flag
+//
+//    //TMR2 = 0; // set TMR2 to 0
+//    T2CON = 0; // reset TMR2 config
+//    //T2CONbits.TOUTPS = 0b0; //prescale: 0b1111 = 16
+//    //T2CONbits.T2CKPS = 0b0; //postscale: 0b11 = 16
+//    PR2 = 51; // TMR2 period //Used in PWM for period
+//    CCP1CON = 0; // reset CCP module
+//    CCP1CONbits.CCP1M = 0b1100; //110x = PWM mode, active high, 111x = PWM mode active low
+//    CCP1CONbits.DC1B = 00; // 2 lsb of 8 for PWM duty cycle
+//    CCPR1L = 0b00011011; // CCP register low: 6msb of 8 for PWM duty cycle
+//    CCPR1H = 0b00000000; // CCP register high //
+//    T2CONbits.TMR2ON = 1; // TMR2 on
+//    while(TMR2 !=0); // wait a cycle to start PWM
+//    TRISIObits.TRISIO2 = 0; // enable PWM output
+//}
+//
+//void TMR1_init(void) //
+//{// initialize and start TMR1, using CCP compare mode with Special Event Trigger
+//    INTCONbits.GIE = 1; // global interrupt enable
+//    INTCONbits.PEIE = 1; // peripheral interrupt enable
+//    PIE1bits.CCP1IE = 1; // Enable CCP interrupt
+//    //PIE1bits.T1IE = 1;
+//    // Not using TMR1 interrupt, ony set on rollover
+//
+//    PIR1bits.CCP1IF = 0; // clear CCP interrupt flag
+//    // If using INTOSC and CLKOUT (see config) can use built in LP 32.768 osc, usage below
+//    //T1CONbits.T1OSCEN = 1; // to use LP 32.768 Hz osc for TMR1
+//
+//    TMR1 = 0; // reset TMR1
+//    T1CON = 0; // reset TMR2 config
+//    //T1CONbits.T1CKPS = 0; //prescale
+//    CCP1CON = 0; // reset CCP module
+//    CCP1CONbits.CCP1M = 0b1011; /*Compare mode, trigger special event
+//    * (CCP1IF bit is set and TMR1 is reset. CCP1 pin is unaffected.)*/
+//    CCPR1L = 0b01000110; // CCP register low
+//    CCPR1H = 0b11110; // CCP register high // these two function as period register for special event trigger
+//    // 31kHz/4 = 7750 Hz = 11110 01000110
+//
+//    T1CONbits.TMR1ON = 1; // TMR1 on
+//}
 
 void TMR0_init(void)
 {// initialize and start TMR0,
-    INTCONbits.GIE = 1; // global interrupt enable
-    INTCONbits.PEIE = 1; // peripheral interrupt enable
     INTCONbits.T0IE = 0; // Enable TMR0 interrupt
+    INTCONbits.GIE = 1; // global interrupt enable
+    //INTCONbits.PEIE = 1; // peripheral interrupt enable
     INTCONbits.T0IF = 0; // clear interrupt flag
 
-    OPTION_REG = 0; // TMR0 config
+    //OPTION_REG = 0; // TMR0 config
     OPTION_REGbits.T0CS = 0; // Internal instruction cycle clock (FOSC/4)
     OPTION_REGbits.PSA = 0; // prescale assigned to TMR0
     OPTION_REGbits.PS = 0b111; // prescaler: if assigned to TMR0: 0b000 = 1:2, 0b111 = 1:256,
@@ -120,39 +120,6 @@ void TMR0_init(void)
     module.*/
 
 }
-
-//int cnt;
-//void interrupt ISR()
-//{// ISR
-//    if(PIR1bits.TMR2IF)
-//    {
-//        //TMR2 = 0; // clear TMR2
-//        PIR1bits.TMR2IF = 0; // clear IF
-//    }
-//
-//    if(PIR1bits.T1IF)
-//    {
-//        PIR1bits.T1IF = 0;
-//    }
-//
-//    if(PIR1bits.CCP1IF)
-//    {
-//        //  ,TMR1 reset by CCP mode
-//        PIR1bits.CCP1IF = 0;
-//    }
-//
-//    if(INTCONbits.T0IF)
-//    {
-//        // TMR0 interrupts only on rollover
-//        INTCONbits.T0IF = 0; // clear IF
-//        if(++cnt == 58000) // if almost 15 minutes: Fosc/4/256 = 1e5/256 = 3906.25
-//            //  1/3906.25 = .000256, 15/.000256 = 58593.75 ~ 58593 for 15 minutes
-//        {
-//            trigger(); // take picture
-//            cnt = 0;  // reset 15 minute counter
-//        }
-//    }
-//}
 
 #define SendIRPulse(x) SendIRPulseCycles(x/25);
 void SendIRPulseCycles(char cycles)
@@ -190,7 +157,8 @@ void waitExactUsHex(char hByte, char lByte)
     }
 }
 
-void trigger()
+int sec = 0, min = 0, cnt = 0;
+void trigger(void)
 {
     SendIRPulse(2000);
     waitExactUs(27800);
@@ -212,6 +180,7 @@ void trigger()
     waitExactUs(3500);
     SendIRPulse(500);
 
+    min = 0; sec = 0; cnt = 0;
 }
 
 void startup(void)
@@ -250,6 +219,49 @@ void startup(void)
     //indicatePower = 0;
 }
 
+void interrupt ISR()
+{// ISR
+//    if(PIR1bits.TMR2IF)
+//    {
+//        //TMR2 = 0; // clear TMR2
+//        PIR1bits.TMR2IF = 0; // clear IF
+//    }
+//
+//    if(PIR1bits.T1IF)
+//    {
+//        PIR1bits.T1IF = 0;
+//    }
+//
+//    if(PIR1bits.CCP1IF)
+//    {
+//        //  ,TMR1 reset by CCP mode
+//        PIR1bits.CCP1IF = 0;
+//    }
+
+    if(INTCONbits.T0IF)
+    {
+        // TMR0 interrupts only on rollover
+        INTCONbits.T0IF = 0; // clear IF
+        cnt++;
+        if(cnt == 3906) //Fosc/4/256 = 1e6/256 = 3906.25 per second
+        {
+            cnt = 0;
+            sec++;
+        }
+        if(sec == 5)
+        {
+            sec = 0;
+            trigger();
+            //min++;
+        }
+//        if(min == 1)
+//        {
+//            min = 0;  // reset 15 minute timer
+//            trigger(); // take picture
+//        }
+    }
+}
+
 int main(void)
 {
     init_ports();
@@ -257,7 +269,7 @@ int main(void)
     startup();
     //TMR2_init();   /////Choose TMR init based on interrupt scheme, for now
     //TMR1_init();
-    //TMR0_init(); // will use for 15 min timer
+    TMR0_init(); // will use for 15 min timer
 
     int i;
     while(1)// main loop
