@@ -20,20 +20,16 @@
 #include <stdint.h>
 
 // GPIO assignments, double check these
-
 #define IRLED GPIObits.GP0 // output to camera trigger IR transmitter LED
 #define indicateDetect GPIObits.GP1 // output to powerOn/detectConfirm indicator LED
-#define modulate GPIObits.GP2 // modualted output to detector ???
+#define modulate GPIObits.GP2 // modulated output to detector
 //#define indicatePower GPIObits.GP3 // cannot use GPIO3 as output
 #define startButton GPIObits.GP4 // input from start button
 #define detect GPIObits.GP5 // input signal from detector
 
-
-// get rid of these, rename functions too
 #define NOP4 asm("nop"); asm("nop"); asm("nop"); asm("nop");
 #define NOP3 asm("nop"); asm("nop");asm("nop");
 #define NOP2 asm("nop"); asm("nop");
-#define NOP1 asm("nop");
 
 void init_ports(void)
 {
@@ -49,7 +45,6 @@ void init_ports(void)
     OPTION_REGbits.nGPPU = 0;
     WPUbits.WPU4 = 1; //weak pull up on startButton input
     WPUbits.WPU5 = 1; //weak pull up on detect input    
-
 }
 
 void init_osc(void)
@@ -57,72 +52,20 @@ void init_osc(void)
     OSCCONbits.IRCF = 0b110; //0b000 = 31 kHz, 0b110 = 4MHz, 0b111 = 8MHz
 }
 
-//void TMR2_init(void) // does NOT increment in sleep mode
-//{// initialize and start TMR2, currently for PWM
-//    INTCONbits.GIE = 1; // global interrupt enable
-//    INTCONbits.PEIE = 1; // peripheral interrupt enable
-//    PIE1bits.TMR2IE = 1; // Enable TMR2 interrupt
-//    PIR1bits.TMR2IF = 0; // clear interrupt flag
-//
-//    //TMR2 = 0; // set TMR2 to 0
-//    T2CON = 0; // reset TMR2 config
-//    //T2CONbits.TOUTPS = 0b0; //prescale: 0b1111 = 16
-//    //T2CONbits.T2CKPS = 0b0; //postscale: 0b11 = 16
-//    PR2 = 51; // TMR2 period //Used in PWM for period
-//    CCP1CON = 0; // reset CCP module
-//    CCP1CONbits.CCP1M = 0b1100; //110x = PWM mode, active high, 111x = PWM mode active low
-//    CCP1CONbits.DC1B = 00; // 2 lsb of 8 for PWM duty cycle
-//    CCPR1L = 0b00011011; // CCP register low: 6msb of 8 for PWM duty cycle
-//    CCPR1H = 0b00000000; // CCP register high //
-//    T2CONbits.TMR2ON = 1; // TMR2 on
-//    while(TMR2 !=0); // wait a cycle to start PWM
-//    TRISIObits.TRISIO2 = 0; // enable PWM output
-//}
-//
-//void TMR1_init(void) //
-//{// initialize and start TMR1, using CCP compare mode with Special Event Trigger
-//    INTCONbits.GIE = 1; // global interrupt enable
-//    INTCONbits.PEIE = 1; // peripheral interrupt enable
-//    PIE1bits.CCP1IE = 1; // Enable CCP interrupt
-//    //PIE1bits.T1IE = 1;
-//    // Not using TMR1 interrupt, ony set on rollover
-//
-//    PIR1bits.CCP1IF = 0; // clear CCP interrupt flag
-//    // If using INTOSC and CLKOUT (see config) can use built in LP 32.768 osc, usage below
-//    //T1CONbits.T1OSCEN = 1; // to use LP 32.768 Hz osc for TMR1
-//
-//    TMR1 = 0; // reset TMR1
-//    T1CON = 0; // reset TMR2 config
-//    //T1CONbits.T1CKPS = 0; //prescale
-//    CCP1CON = 0; // reset CCP module
-//    CCP1CONbits.CCP1M = 0b1011; /*Compare mode, trigger special event
-//    * (CCP1IF bit is set and TMR1 is reset. CCP1 pin is unaffected.)*/
-//    CCPR1L = 0b01000110; // CCP register low
-//    CCPR1H = 0b11110; // CCP register high // these two function as period register for special event trigger
-//    // 31kHz/4 = 7750 Hz = 11110 01000110
-//
-//    T1CONbits.TMR1ON = 1; // TMR1 on
-//}
-
 void TMR0_init(void)
 {// initialize and start TMR0,
-    INTCONbits.T0IE = 0; // Enable TMR0 interrupt
-    INTCONbits.GIE = 1; // global interrupt enable
-    //INTCONbits.PEIE = 1; // peripheral interrupt enable
     INTCONbits.T0IF = 0; // clear interrupt flag
+    INTCONbits.T0IE = 1; // Enable TMR0 interrupt
+    INTCONbits.PEIE = 1; // peripheral interrupt enable
+    INTCONbits.GIE = 1; // global interrupt enable
 
-    //OPTION_REG = 0; // TMR0 config
     OPTION_REGbits.T0CS = 0; // Internal instruction cycle clock (FOSC/4)
     OPTION_REGbits.PSA = 0; // prescale assigned to TMR0
     OPTION_REGbits.PS = 0b111; // prescaler: if assigned to TMR0: 0b000 = 1:2, 0b111 = 1:256,
-    /*In order to have a 1:1 prescaler value for the Timer0
-    module, the prescaler must be assigned to the WDT
-    module.*/
-
 }
 
-#define SendIRPulse(x) SendIRPulseCycles(x/25);
-void SendIRPulseCycles(char cycles)
+#define IRPulse(x) IRPulseCycles(x/25); // change input from microseconds to cycles
+void IRPulseCycles(char cycles)
 {
     while (cycles--)		//this loop is exactly 25us - of approximately 50% dutycycle
     {
@@ -133,26 +76,14 @@ void SendIRPulseCycles(char cycles)
     }
 }
 
-#define SendIRPulseDetect(x) SendIRPulseDetectCycles(x/25);
-void SendIRPulseDetectCycles(char cycles)
-{
-    while (cycles--)		//this loop is exactly 25us - of approximately 50% dutycycle
-    {
-        modulate = 1;
-        NOP4; NOP4; NOP3;
-        modulate = 0;
-        NOP3;
-    }
-}
-
-#define waitExactUs(x) waitExactUsHex(x/256, (x%256)/5);
-void waitExactUsHex(char hByte, char lByte)
+#define delayUs(x) delayUsHex(x/256, (x%256)/5); // change input from microseconds to cylces
+void delayUsHex(char hByte, char lByte)
 {
     char i;
     while (lByte--) { continue; }
     while (hByte--)
     {
-        i = 35;
+        i = 35; // vary this to tune
         while (i--) { continue; }
     }
 }
@@ -160,25 +91,25 @@ void waitExactUsHex(char hByte, char lByte)
 int sec = 0, min = 0, cnt = 0;
 void trigger(void)
 {
-    SendIRPulse(2000);
-    waitExactUs(27800);
-    SendIRPulse(500);
-    waitExactUs(1500);
-    SendIRPulse(500);
-    waitExactUs(3500);
-    SendIRPulse(500);
+    IRPulse(2000);
+    delayUs(27800);
+    IRPulse(500);
+    delayUs(1500);
+    IRPulse(500);
+    delayUs(3500);
+    IRPulse(500);
 
-    waitExactUs(25000);
-    waitExactUs(25000);
-    waitExactUs(13000);
+    delayUs(25000);
+    delayUs(25000);
+    delayUs(13000);
 
-    SendIRPulse(2000);
-    waitExactUs(27800);
-    SendIRPulse(500);
-    waitExactUs(1500);
-    SendIRPulse(500);
-    waitExactUs(3500);
-    SendIRPulse(500);
+    IRPulse(2000);
+    delayUs(27800);
+    IRPulse(500);
+    delayUs(1500);
+    IRPulse(500);
+    delayUs(3500);
+    IRPulse(500);
 
     min = 0; sec = 0; cnt = 0;
 }
@@ -195,15 +126,12 @@ void startup(void)
         indicateDetect = sw;
         for(k=20; k !=0; k--) // turn
             {
-                waitExactUs(25000);
+                delayUs(25000);
             }
     }
-
     while(startButton | detect) // wait for start button press and beam detection, both active low
-        // start button active low, detector active low (will be low as long as beam is received?)
+        // start button active low, detector active low (will be low as long as beam is received)
     {
-        modulate = 1;
-        NOP4; NOP1;// NOP2;// add/remove as needed for 38.4 kHz
         if(!detect) // if beam reflecting and sensed, active low
         {
             indicateDetect = 1;
@@ -212,53 +140,32 @@ void startup(void)
         {
             indicateDetect = 0;
         }
-        modulate = 0;
-        NOP1;//NOP2; // add/remove as needed for 38.4 kHz
     }
-    //indicateDetect = 0;
-    //indicatePower = 0;
+    indicateDetect = 0;
 }
 
 void interrupt ISR()
-{// ISR
-//    if(PIR1bits.TMR2IF)
-//    {
-//        //TMR2 = 0; // clear TMR2
-//        PIR1bits.TMR2IF = 0; // clear IF
-//    }
-//
-//    if(PIR1bits.T1IF)
-//    {
-//        PIR1bits.T1IF = 0;
-//    }
-//
-//    if(PIR1bits.CCP1IF)
-//    {
-//        //  ,TMR1 reset by CCP mode
-//        PIR1bits.CCP1IF = 0;
-//    }
-
-    if(INTCONbits.T0IF)
+{
+    if(INTCONbits.TMR0IF)
     {
         // TMR0 interrupts only on rollover
         INTCONbits.T0IF = 0; // clear IF
         cnt++;
-        if(cnt == 3906) //Fosc/4/256 = 1e6/256 = 3906.25 per second
+        if(cnt == 15) //(Finst/TMR0max)/prescale = (1e6/256)/256 = 15.25 per second
         {
             cnt = 0;
             sec++;
         }
-        if(sec == 5)
+        if(sec == 60)
         {
             sec = 0;
-            trigger();
-            //min++;
+            min++;
         }
-//        if(min == 1)
-//        {
-//            min = 0;  // reset 15 minute timer
-//            trigger(); // take picture
-//        }
+        if(min == 1)// this logic is a little slow, so pics will be taken within 15 minutes, as desired
+        {
+            min = 0;  // reset 15 minute timer
+            trigger(); // take picture
+        }
     }
 }
 
@@ -266,34 +173,22 @@ int main(void)
 {
     init_ports();
     init_osc();
-    startup();
-    //TMR2_init();   /////Choose TMR init based on interrupt scheme, for now
-    //TMR1_init();
+    startup(); // setup sequence
     TMR0_init(); // will use for 15 min timer
 
     int i;
     while(1)// main loop
     {
-        SendIRPulseDetect(6000); // to get detect line low
-        while(!detect)// main looop, program spends majority here, detect active low
-        {
-            modulate = 1;
-            NOP4; NOP4; NOP2;
-            modulate = 0;
-            NOP4; NOP4;
-        }
+        while(!detect);// main loop, program spends majority here, detect active low
 
-        // have reset on box if setup needed again
-        // set up 15 minute timer using interrupt and counter, calls trigger
-
-        for(i=10; i !=0; i--) // to separate beginning of trigger sequence
+        for(i=5; i !=0; i--) // to separate beginning of trigger sequence
         {
-            waitExactUs(50000);
+            delayUs(50000);
         }
         trigger(); // take picture
-        for(i=10; i !=0; i--) // delay between pictures
+        for(i=10; i !=0; i--) // delay after picture
         {
-            waitExactUs(50000);
+            delayUs(50000);
         }
     }
 
