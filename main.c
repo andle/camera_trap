@@ -34,12 +34,12 @@
 void init_ports(void)
 {
     ANSELbits.ANS = 0b0000; // 0=digital, 1=analog, does not affect digital output
-    TRISIObits.TRISIO0 = 0;
-    TRISIObits.TRISIO1 = 0;
-    TRISIObits.TRISIO2 = 0;
-    //TRISIObits.TRISIO3 = 0; // 3 always input?
-    TRISIObits.TRISIO4 = 1;
-    TRISIObits.TRISIO5 = 1;
+    TRISIObits.TRISIO0 = 0; // ouput
+    TRISIObits.TRISIO1 = 0; // ouput
+    TRISIObits.TRISIO2 = 0; // ouput
+    //TRISIObits.TRISIO3 = 0; // 3 always input
+    TRISIObits.TRISIO4 = 1; // input
+    TRISIObits.TRISIO5 = 1; // input
     GPIO = 0; // clear all IO bits
 
     OPTION_REGbits.nGPPU = 0;
@@ -53,7 +53,7 @@ void init_osc(void)
 }
 
 void TMR0_init(void)
-{// initialize and start TMR0,
+{// initialize and start TMR0
     INTCONbits.T0IF = 0; // clear interrupt flag
     INTCONbits.T0IE = 1; // Enable TMR0 interrupt
     INTCONbits.PEIE = 1; // peripheral interrupt enable
@@ -64,9 +64,10 @@ void TMR0_init(void)
     OPTION_REGbits.PS = 0b111; // prescaler: if assigned to TMR0: 0b000 = 1:2, 0b111 = 1:256,
 }
 
+// IR pulse in microseconds function
 #define IRPulse(x) IRPulseCycles(x/25); // change input from microseconds to cycles
 void IRPulseCycles(char cycles)
-{
+{ // IR pulse function
     while (cycles--)		//this loop is exactly 25us - of approximately 50% dutycycle
     {
         IRLED = 1;
@@ -76,7 +77,8 @@ void IRPulseCycles(char cycles)
     }
 }
 
-#define delayUs(x) delayUsHex(x/256, (x%256)/5); // change input from microseconds to cylces
+// microsecond delay function
+#define delayUs(x) delayUsHex(x/256, (x%256)/5); // change input from microseconds to cycles
 void delayUsHex(char hByte, char lByte)
 {
     char i;
@@ -90,7 +92,7 @@ void delayUsHex(char hByte, char lByte)
 
 int sec = 0, min = 0, cnt = 0;
 void trigger(void)
-{
+{ // camera trigger sequence
     IRPulse(2000);
     delayUs(27800);
     IRPulse(500);
@@ -111,7 +113,7 @@ void trigger(void)
     delayUs(3500);
     IRPulse(500);
 
-    min = 0; sec = 0; cnt = 0;
+    min = 0; sec = 0; cnt = 0; // reset timeout variables
 }
 
 void startup(void)
@@ -161,9 +163,9 @@ void interrupt ISR()
             sec = 0;
             min++;
         }
-        if(min == 1)// this logic is a little slow, so pics will be taken within 15 minutes, as desired
+        if(min == 14)// this logic is a little fast, so pics will be taken within 15 minutes, as desired
         {
-            min = 0;  // reset 15 minute timer
+            min = 0;  // reset timeout timer
             trigger(); // take picture
         }
     }
